@@ -1,0 +1,104 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.pub-cache/
+.pub/
+
+# IDE
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude/AI
+.claude/
+CLAUDE.md
+
+# Temp files
+*.log
+*.tmp
+*.temp
+nul
+
+# Screenshots & test files (root only)
+*.png
+!assets/**/*.png
+!android/**/*.png
+!ios/**/*.png
+!web/**/*.png
+!**/assets/**/*.png
+!**/android/**/*.png
+!**/ios/**/*.png
+!**/web/**/*.png
+*.jpg
+*.jpeg
+!assets/**/*.jpg
+!assets/**/*.jpeg
+!**/assets/**/*.jpg
+!**/assets/**/*.jpeg
+
+# Docs (except README)
+*.md
+!README.md
+
+# Non-Flutter artifacts
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.webp
+!assets/**/*.webp
+!**/assets/**/*.webp
+login.json
+profile.json
+releases/
+resto-app/
+*.gitignore.bak
+
+# Scripts & misc
+*.py
+*.php
+*.txt
+!assets/**/*.txt
+!**/assets/**/*.txt
+*.keystore
+*.stackdump
+scripts/
+public/
+.crashlytics/
+
+# Symbolication & obfuscation
+app.*.symbols
+app.*.map.json
+
+# Android build artifacts
+**/android/app/debug
+**/android/app/profile
+**/android/app/release
+**/android/app/.cxx
+
+# Lock files (keep pubspec.lock)
+*.lock
+!pubspec.lock
+!**/pubspec.lock
+
+# Firebase
+.firebaserc
+firebase.json
+.firebase
+
+# Environment
+.env
+*.env

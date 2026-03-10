@@ -1,0 +1,61 @@
+import 'package:mnjood/common/models/restaurant_model.dart';
+
+class BasicCampaignModel {
+  int? id;
+  String? title;
+  String? imageFullUrl;
+  String? description;
+  String? availableDateStarts;
+  String? availableDateEnds;
+  String? startTime;
+  String? endTime;
+  List<Restaurant>? restaurants;
+
+  BasicCampaignModel({
+    this.id,
+    this.title,
+    this.imageFullUrl,
+    this.description,
+    this.availableDateStarts,
+    this.availableDateEnds,
+    this.startTime,
+    this.endTime,
+    this.restaurants,
+  });
+
+  BasicCampaignModel.fromJson(Map<String, dynamic> json) {
+    id = json['id'];
+    title = json['title'];
+    imageFullUrl = json['image_full_url'];
+    description = json['description'];
+    availableDateStarts = json['available_date_starts'];
+    availableDateEnds = json['available_date_ends'];
+    startTime = json['start_time'];
+    endTime = json['end_time'];
+    if (json['restaurants'] != null && json['restaurants'] is List && (json['restaurants'] as List).isNotEmpty) {
+      restaurants = [];
+      json['restaurants'].forEach((v) {
+        restaurants!.add(Restaurant.fromJson(v));
+      });
+    } else {
+      // Initialize as empty array when null or empty, so UI knows data loading is complete
+      restaurants = [];
+    }
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['id'] = id;
+    data['title'] = title;
+    data['image_full_url'] = imageFullUrl;
+    data['description'] = description;
+    data['available_date_starts'] = availableDateStarts;
+    data['available_date_ends'] = availableDateEnds;
+    data['start_time'] = startTime;
+    data['end_time'] = endTime;
+    if (restaurants != null) {
+      data['restaurants'] = restaurants!.map((v) => v.toJson()).toList();
+    }
+    return data;
+  }
+}

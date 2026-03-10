@@ -1,0 +1,36 @@
+import 'package:flutter/material.dart';
+import 'package:mnjood_vendor/util/dimensions.dart';
+
+class DetailsCustomCard extends StatelessWidget {
+  final Widget? child;
+  final double? width;
+  final double? height;
+  final double? borderRadius;
+  final EdgeInsetsGeometry? margin;
+  final EdgeInsetsGeometry? padding;
+  final bool isBorder;
+  const DetailsCustomCard({super.key, this.child, this.width, this.height, this.borderRadius, this.margin, this.padding, this.isBorder = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width ?? double.infinity,
+      height: height,
+      margin: margin,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(borderRadius ?? Dimensions.radiusDefault),
+        border: isBorder ? Border.all(color: Theme.of(context).hintColor.withOpacity(0.08), width: 1) : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}

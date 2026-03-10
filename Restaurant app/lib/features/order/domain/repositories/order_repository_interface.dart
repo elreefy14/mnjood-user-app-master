@@ -1,0 +1,15 @@
+import 'package:mnjood_vendor/api/api_client.dart';
+import 'package:mnjood_vendor/features/order/domain/models/update_status_model.dart';
+import 'package:mnjood_vendor/interface/repository_interface.dart';
+
+abstract class OrderRepositoryInterface implements RepositoryInterface {
+  Future<dynamic> getCurrentOrders();
+  Future<dynamic> getPaginatedOrderList({required int offset, required String status, required int isSubscription});
+  Future<dynamic> updateOrderStatus(UpdateStatusModel updateStatusBody, List<MultipartBody> proofAttachment);
+  Future<dynamic> getOrderWithId(int? orderId);
+  Future<dynamic> getCancelReasons();
+  Future<dynamic> sendDeliveredNotification(int? orderID);
+  Future<void> setBluetoothAddress(String? address);
+  String? getBluetoothAddress();
+  Future<bool> addDineInTableAndTokenNumber(int? orderId, String? tableNumber, String? tokenNumber);
+}

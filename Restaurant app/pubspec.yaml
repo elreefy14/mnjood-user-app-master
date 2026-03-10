@@ -1,0 +1,105 @@
+name: mnjood_vendor
+description: Mnjood Vendor - Restaurant management app for Mnjood food delivery platform.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.2.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  get: ^4.7.2
+  shared_preferences: ^2.5.3
+  connectivity_plus: ^6.1.5
+  firebase_core: ^4.1.0
+  firebase_messaging: ^16.0.1
+  flutter_local_notifications: ^19.4.1
+  path_provider: ^2.1.5
+  url_strategy: ^0.3.0
+  shimmer_animation: ^2.2.2
+  image_picker: ^1.2.0
+  http: ^1.5.0
+  pin_code_fields: ^8.0.1
+  url_launcher: ^6.3.2
+  vibration: ^3.1.3
+  audioplayers: ^6.5.1
+  flutter_switch: ^0.3.2
+  flutter_typeahead: ^5.2.0
+  phone_numbers_parser: ^9.0.11
+  country_code_picker: ^3.4.0
+  flutter_widget_from_html_core: ^0.17.0
+  google_maps_flutter: ^2.13.1
+  geolocator: ^14.0.2
+  card_swiper: ^3.0.1
+  print_bluetooth_thermal: ^1.1.6
+  flutter_esc_pos_utils: ^1.0.1
+  screenshot: ^3.0.0
+  sunmi_printer_plus: ^4.1.1
+  image: ^4.5.4
+  modal_bottom_sheet: ^3.0.0
+  intl: ^0.20.2
+  path: ^1.9.1
+  http_parser: ^4.1.2
+  dotted_border: ^3.1.0
+  carousel_slider: ^5.1.1
+  photo_view: ^0.15.0
+  flutter_inappwebview: ^6.1.5
+  just_the_tooltip: ^0.0.12
+  file_picker: ^10.3.2
+  custom_info_window: ^1.0.1
+  syncfusion_flutter_charts: ^30.2.7
+  permission_handler: ^12.0.1
+  flutter_svg: ^2.2.1
+  flutter_slidable: ^4.0.1
+  video_player: ^2.10.0
+  chewie: ^1.12.1
+  pdf: ^3.11.3
+  flutter_foreground_task: ^9.1.0
+  dropdown_button2: ^2.3.9
+  open_filex: ^4.7.0
+  animated_flip_counter: ^0.3.4
+  flutter_image_compress: ^2.4.0
+  heroicons_flutter: ^0.3.0
+  mobile_scanner: ^5.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/image/
+    - assets/language/
+    - assets/notification.mp3
+    - assets/map/
+
+  fonts:
+    - family: GraphikArabic
+      fonts:
+        - asset: assets/font/GraphikArabic-Regular.ttf
+          weight: 400
+        - asset: assets/font/GraphikArabic-Medium.ttf
+          weight: 500
+        - asset: assets/font/GraphikArabic-Semibold.ttf
+          weight: 600
+        - asset: assets/font/GraphikArabic-Bold.ttf
+          weight: 700
+        - asset: assets/font/GraphikArabic-Black.ttf
+          weight: 900
+    - family: Roboto
+      fonts:
+        - asset: assets/font/Roboto-Regular.ttf
+          weight: 400
+        - asset: assets/font/Roboto-Medium.ttf
+          weight: 500
+        - asset: assets/font/Roboto-Bold.ttf
+          weight: 700
+        - asset: assets/font/Roboto-Black.ttf
+          weight: 900

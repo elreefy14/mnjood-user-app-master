@@ -1,0 +1,87 @@
+import 'package:mnjood_vendor/features/restaurant/controllers/restaurant_controller.dart';
+import 'package:mnjood_vendor/features/splash/controllers/splash_controller.dart';
+import 'package:mnjood_vendor/helper/date_converter_helper.dart';
+import 'package:mnjood_vendor/util/dimensions.dart';
+import 'package:mnjood_vendor/util/styles.dart';
+import 'package:flutter/material.dart';
+import 'package:heroicons_flutter/heroicons_flutter.dart';
+import 'package:get/get.dart';
+
+class TimePickerWidget extends StatefulWidget {
+  final String title;
+  final String? time;
+  final Function(String?) onTimeChanged;
+  const TimePickerWidget({super.key, required this.title, required this.time, required this.onTimeChanged});
+
+  @override
+  State<TimePickerWidget> createState() => _TimePickerWidgetState();
+}
+
+class _TimePickerWidgetState extends State<TimePickerWidget> {
+  String? _myTime;
+
+  @override
+  Widget build(BuildContext context) {
+
+    _myTime = widget.time;
+
+    return GetBuilder<RestaurantController>(builder: (restController) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+        InkWell(
+          onTap: () async {
+            TimeOfDay? time = await showTimePicker(
+              context: context, initialTime: TimeOfDay(hour: DateTime.now().hour, minute: DateTime.now().minute),
+              builder: (BuildContext context, Widget? child) {
+                return MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    alwaysUse24HourFormat: Get.find<SplashController>().configModel!.timeformat == '24',
+                  ),
+                  child: child!,
+                );
+              },
+            );
+            if(time != null) {
+              setState(() {
+                _myTime = DateConverter.convertTimeToTime(DateTime(DateTime.now().year, 1, 1, time.hour, time.minute));
+              });
+              widget.onTimeChanged(_myTime);
+            }
+          },
+          child: Stack(clipBehavior: Clip.none, children: [
+
+            Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+                border: Border.all(color: Theme.of(context).hintColor, width: 0.5),
+              ),
+              padding: const EdgeInsets.only(left: Dimensions.paddingSizeDefault, right: Dimensions.paddingSizeSmall),
+              child: Row(children: [
+
+                Expanded(child: Text(
+                  _myTime != null ? DateConverter.convertStringTimeToTime(_myTime!) : ' - -  : - - ${'min'.tr}', style: robotoRegular.copyWith(color: _myTime != null ? Theme.of(context).textTheme.bodyLarge?.color : Theme.of(context).hintColor, fontSize: Dimensions.fontSizeDefault),
+                )),
+
+                Icon(HeroiconsSolid.clock, size: 20, color: Theme.of(context).primaryColor),
+
+              ]),
+            ),
+
+            Positioned(
+              left: 10, top: -15,
+              child: Container(
+                decoration: BoxDecoration(color: Theme.of(context).cardColor),
+                padding: const EdgeInsets.all(5),
+                child: Text(widget.title, style: robotoRegular.copyWith(color: Theme.of(context).hintColor, fontSize: Dimensions.fontSizeSmall)),
+              ),
+            ),
+
+          ]),
+        ),
+
+      ]);
+    });
+  }
+}

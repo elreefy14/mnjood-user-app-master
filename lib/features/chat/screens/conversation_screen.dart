@@ -1,0 +1,350 @@
+import 'package:mnjood/common/widgets/custom_asset_image_widget.dart';
+import 'package:mnjood/features/chat/widgets/chat_serach_field_widget.dart';
+import 'package:mnjood/features/chat/widgets/message_card_widget.dart';
+import 'package:mnjood/features/notification/domain/models/notification_body_model.dart';
+import 'package:mnjood/features/profile/controllers/profile_controller.dart';
+import 'package:mnjood/features/splash/controllers/splash_controller.dart';
+import 'package:mnjood/features/auth/controllers/auth_controller.dart';
+import 'package:mnjood/features/chat/controllers/chat_controller.dart';
+import 'package:mnjood/features/chat/domain/models/conversation_model.dart';
+import 'package:mnjood/features/chat/widgets/web_chat_view_widget.dart';
+import 'package:mnjood/helper/date_converter.dart';
+import 'package:mnjood/helper/responsive_helper.dart';
+import 'package:mnjood/helper/route_helper.dart';
+import 'package:mnjood/common/enums/user_type.dart';
+import 'package:mnjood/util/dimensions.dart';
+import 'package:mnjood/util/images.dart';
+import 'package:mnjood/util/styles.dart';
+import 'package:mnjood/common/widgets/custom_app_bar_widget.dart';
+import 'package:mnjood/common/widgets/custom_image_widget.dart';
+import 'package:mnjood/common/widgets/custom_ink_well_widget.dart';
+import 'package:mnjood/common/widgets/custom_snackbar_widget.dart';
+import 'package:mnjood/common/widgets/menu_drawer_widget.dart';
+import 'package:mnjood/common/widgets/not_logged_in_screen.dart';
+import 'package:mnjood/common/widgets/paginated_list_view_widget.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:heroicons_flutter/heroicons_flutter.dart';
+
+class ConversationScreen extends StatefulWidget {
+  const ConversationScreen({super.key});
+
+  @override
+  State<ConversationScreen> createState() => _ConversationScreenState();
+}
+
+class _ConversationScreenState extends State<ConversationScreen> {
+  final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+
+    _initCall();
+    _scrollController.addListener(() {
+      if(_scrollController.offset < 105) {
+        Get.find<ChatController>().canShowFloatingButton(false);
+      } else {
+        Get.find<ChatController>().canShowFloatingButton(true);
+      }
+    });
+  }
+
+  void _initCall(){
+    if(Get.find<AuthController>().isLoggedIn()) {
+      Get.find<ProfileController>().getUserInfo();
+      Get.find<ChatController>().setType('delivery_man', willUpdate: false);
+      Get.find<ChatController>().getConversationList(1, type: Get.find<ChatController>().type);
+      Get.find<ChatController>().getAdminMessages();
+    }
+  }
+
+  void _decideResult(ConversationsModel? conversation) {
+    // Only delivery_man conversations now — no tab switching needed
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    return GetBuilder<ChatController>(builder: (chatController) {
+      ConversationsModel? conversation;
+      if(chatController.searchConversationModel != null) {
+        conversation = chatController.searchConversationModel;
+        _decideResult(chatController.searchConversationModel);
+      }else {
+        conversation = chatController.conversationModel;
+      }
+
+      return Scaffold(
+        appBar: CustomAppBarWidget(title: 'conversation_list'.tr),
+        endDrawer: const MenuDrawerWidget(), endDrawerEnableOpenDragGesture: false,
+        floatingActionButton: !ResponsiveHelper.isDesktop(context) ? (chatController.conversationModel != null && chatController.showFloatingButton) ? FloatingActionButton(
+          backgroundColor: Theme.of(context).primaryColor,
+          onPressed: () => Get.toNamed(RouteHelper.getChatRoute(notificationBody: NotificationBodyModel(
+            notificationType: NotificationType.message, adminId: 0,
+          ))),
+          child: CustomAssetImageWidget(Images.logo, height: 30, width: 30),
+        ) : null : null,
+
+        body: ResponsiveHelper.isDesktop(context) ? WebChatViewWidget(
+          scrollController: _scrollController,
+          conversation: conversation,
+          chatController: chatController,
+          searchController: _searchController,
+          initCall: _initCall,
+        ) : Column(children: [
+
+        (Get.find<AuthController>().isLoggedIn() && conversation != null) ? Center(child: Container(
+          width: Dimensions.webMaxWidth,
+          padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
+          child: ChatSearchFieldWidget(
+          controller: _searchController,
+          hint: '${'search'.tr}.....',
+          suffixIcon: chatController.searchConversationModel != null ? HeroiconsOutline.xMark : HeroiconsOutline.magnifyingGlass,
+          onSubmit: (String text) {
+            if(_searchController.text.trim().isNotEmpty) {
+              chatController.searchConversation(_searchController.text.trim());
+            }else {
+              showCustomSnackBar('write_something'.tr);
+            }
+          },
+          iconPressed: () {
+            if(chatController.searchConversationModel != null) {
+              _searchController.text = '';
+              chatController.removeSearchMode();
+              chatController.getConversationList(1, type: chatController.type);
+            } else {
+              if(_searchController.text.trim().isNotEmpty) {
+                chatController.searchConversation(_searchController.text.trim());
+              }else {
+                showCustomSnackBar('write_something'.tr);
+              }
+            }
+          },
+        ))) : const SizedBox(),
+
+        Expanded(child: Get.find<AuthController>().isLoggedIn() ? (conversation != null) ? RefreshIndicator(
+          onRefresh: () async {
+            await Get.find<ChatController>().getConversationList(1, type: chatController.type);
+          },
+          child: CustomScrollView(controller: _scrollController, slivers: [
+
+            SliverToBoxAdapter(child: chatController.conversationModel != null ? Padding(
+              padding: const EdgeInsets.only(left: Dimensions.paddingSizeDefault, right: Dimensions.paddingSizeDefault, bottom: Dimensions.paddingSizeSmall, top: Dimensions.paddingSizeExtraSmall),
+              child: MessageCardWidget(
+                userTypeImage: '',  // Empty to trigger static logo fallback
+                userType: Get.find<SplashController>().configModel?.businessName ?? '',
+                count: chatController.adminConversationModel?.unreadMessageCount ?? 0,
+                message: chatController.adminConversationModel?.lastMessage?.message ?? 'chat_with_admin'.tr,
+                time: chatController.adminConversationModel?.lastMessageTime != null ? DateConverter.stringDateTimeToDate(chatController.adminConversationModel!.lastMessageTime!) : '',
+                onTap: () {
+                  Get.toNamed(RouteHelper.getChatRoute(notificationBody: NotificationBodyModel(
+                    notificationType: NotificationType.message, adminId: 0,
+                  )))?.then((value) => Get.find<ChatController>().getConversationList(1, type: chatController.type));
+                },
+              ),
+            ) : const SizedBox()),
+
+
+            SliverToBoxAdapter(
+              child: conversation.conversations != null ? conversation.conversations!.isNotEmpty ? conversationCart(chatController, conversation) : Padding(
+                padding: const EdgeInsets.only(top: 100),
+                child: Center(child: Column(
+                  children: [
+                    const CustomAssetImageWidget(
+                      Images.messageEmpty,
+                      height: 70, width: 70,
+                    ),
+                    const SizedBox(height: Dimensions.paddingSizeSmall),
+
+                    Text(
+                      'no_conversation_found'.tr,
+                      style: robotoRegular.copyWith(color: Theme.of(context).disabledColor),
+                    ),
+                  ],
+                )),
+              ) : const Padding(
+                padding: EdgeInsets.only(top: 100),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+
+            ),
+
+          ]),
+        ) : const Center(child: CircularProgressIndicator()) :  NotLoggedInScreen(callBack: (value){
+          _initCall();
+          setState(() {});
+        })),
+
+        ]),
+
+      );
+    });
+  }
+
+  Widget conversationCart(ChatController chatController, ConversationsModel? conversation) {
+    return !chatController.tabLoading ? Container(
+      width: Dimensions.webMaxWidth,
+      padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
+      child: PaginatedListViewWidget(
+        scrollController: _scrollController,
+        onPaginate: (int? offset) => chatController.getConversationList(offset!, type: chatController.type),
+        totalSize: conversation?.totalSize,
+        offset: conversation?.offset,
+        enabledPagination: chatController.searchConversationModel == null,
+        productView: ListView.builder(
+          itemCount: conversation?.conversations!.length,
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
+          itemBuilder: (context, index) {
+
+            User? user;
+            String? type;
+            if(conversation!.conversations![index]!.senderType == UserType.user.name
+                || conversation.conversations![index]!.senderType == UserType.customer.name) {
+              user = conversation.conversations![index]!.receiver;
+              type = conversation.conversations![index]!.receiverType;
+            }else {
+              user = conversation.conversations![index]!.sender;
+              type = conversation.conversations![index]!.senderType;
+            }
+
+            String? lastMessage = _lastMessage(conversation.conversations![index]);
+
+            bool unSeen =  (Get.find<ProfileController>().userInfoModel != null && Get.find<ProfileController>().userInfoModel!.userInfo != null
+                && conversation.conversations![index]?.lastMessage?.senderId != null
+                && conversation.conversations![index]!.lastMessage!.senderId != Get.find<ProfileController>().userInfoModel!.userInfo?.id
+                && (conversation.conversations![index]?.unreadMessageCount ?? 0) > 0);
+
+            return (type == UserType.admin.name) ? const SizedBox() : (type == chatController.type) ? Container(
+              margin: const EdgeInsets.only(bottom: Dimensions.paddingSizeSmall),
+              decoration: BoxDecoration(
+                color: unSeen ? Theme.of(context).primaryColor.withValues(alpha: 0.1) : Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(Dimensions.radiusMedium),
+                boxShadow: [BoxShadow(color: unSeen ? Theme.of(context).cardColor : Colors.black.withValues(alpha: 0.05), blurRadius: 5, spreadRadius: 0)],
+              ),
+              child: CustomInkWellWidget(
+                onTap: () async {
+                  if(user != null) {
+
+                    await Get.toNamed(RouteHelper.getChatRoute(
+                      notificationBody: NotificationBodyModel(
+                        type: conversation.conversations![index]!.senderType,
+                        notificationType: NotificationType.message,
+                        adminId: type == UserType.admin.name ? 0 : null,
+                        restaurantId: type == UserType.vendor.name ? user.id : null,
+                        deliverymanId: type == UserType.delivery_man.name ? user.id : null,
+                      ),
+                      conversationID: conversation.conversations![index]!.id,
+                      index: index,
+                    ));
+                    Get.find<ChatController>().getConversationList(1, type: Get.find<ChatController>().type);
+
+                  } else {
+                    showCustomSnackBar('${type!.tr} ${'not_found'.tr}');
+                  }
+                },
+                highlightColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.1),
+                radius: Dimensions.radiusSmall,
+                child: Padding(
+                  padding: EdgeInsets.all(Dimensions.paddingSizeLarge),
+                  child: Row(children: [
+
+                    ClipOval(child: CustomImageWidget(
+                      height: 50, width: 50,
+                      image: '${user != null ? user.imageFullUrl : ''}',
+                    )),
+                    const SizedBox(width: Dimensions.paddingSizeSmall),
+
+                    Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.start, crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                        user != null ? Text(
+                          '${user.fName} ${user.lName}', style: robotoMedium,
+                        ) : Text('${type!.tr} ${'deleted'.tr}', style: robotoMedium),
+
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            DateConverter.convertTodayYesterdayDate(conversation.conversations![index]!.lastMessageTime!),
+                            style: robotoRegular.copyWith(color: Theme.of(context).hintColor, fontSize: Dimensions.fontSizeExtraSmall),
+                          ),
+                        ),
+                      ]),
+                      const SizedBox(height: Dimensions.paddingSizeExtraSmall),
+
+                      Row(children: [
+                        user != null ? Expanded(
+                          child: Text(
+                            lastMessage ?? 'start_conversation'.tr,
+                            style: robotoRegular.copyWith(fontSize: Dimensions.fontSizeSmall, color: Theme.of(context).disabledColor),
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                          ),
+                        ) : const SizedBox(),
+                        SizedBox(width: Dimensions.paddingSizeDefault),
+
+                        GetBuilder<ProfileController>(builder: (profileController) {
+                          return (profileController.userInfoModel != null && profileController.userInfoModel!.userInfo != null
+                              && conversation.conversations![index]?.lastMessage?.senderId != null
+                              && conversation.conversations![index]!.lastMessage!.senderId != profileController.userInfoModel!.userInfo!.id
+                              && (conversation.conversations![index]?.unreadMessageCount ?? 0) > 0) ? Container(
+                            padding: const EdgeInsets.all(Dimensions.paddingSizeExtraSmall),
+                            decoration: BoxDecoration(color: Theme.of(context).primaryColor, shape: BoxShape.circle),
+                            child: Text(
+                              conversation.conversations![index]!.unreadMessageCount.toString(),
+                              style: robotoMedium.copyWith(color: Theme.of(context).cardColor, fontSize: Dimensions.fontSizeExtraSmall),
+                            ),
+                          ) : const SizedBox();
+                        }),
+                      ]),
+                    ])),
+                  ]),
+                ),
+              ),
+            ) : const SizedBox();
+          },
+        ),
+      ),
+    ) : const Padding(
+      padding: EdgeInsets.only(top: 100),
+      child: Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  String? _lastMessage(Conversation? conversation) {
+    if(conversation != null && conversation.lastMessage != null) {
+      if(conversation.lastMessage!.message != null) {
+        return conversation.lastMessage!.message;
+      }
+      else if(conversation.lastMessage!.filesFullUrl?.isNotEmpty == true) {
+        return '${conversation.lastMessage!.filesFullUrl!.length} ${'attachment'.tr}';
+      }
+    }
+    return null;
+  }
+}
+
+class SliverDelegate extends SliverPersistentHeaderDelegate {
+  Widget child;
+  double height;
+
+  SliverDelegate({required this.child, this.height = 50});
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return child;
+  }
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  double get minExtent => height;
+
+  @override
+  bool shouldRebuild(SliverDelegate oldDelegate) {
+    return oldDelegate.maxExtent != height || oldDelegate.minExtent != height || child != oldDelegate.child;
+  }
+}

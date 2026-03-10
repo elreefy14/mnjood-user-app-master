@@ -1,0 +1,324 @@
+import 'dart:convert';
+
+import 'package:mnjood/common/models/response_model.dart';
+import 'package:mnjood/api/api_client.dart';
+import 'package:mnjood/features/address/domain/models/address_model.dart';
+import 'package:mnjood/features/auth/domain/models/signup_body_model.dart';
+import 'package:mnjood/features/auth/domain/models/social_log_in_body_model.dart';
+import 'package:mnjood/features/auth/domain/reposotories/auth_repo_interface.dart';
+import 'package:mnjood/helper/address_helper.dart';
+import 'package:mnjood/util/app_constants.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class AuthRepo implements AuthRepoInterface<SignUpBodyModel> {
+  final ApiClient apiClient;
+  final SharedPreferences sharedPreferences;
+  AuthRepo({ required this.sharedPreferences, required this.apiClient});
+
+  @override
+  Future<bool> saveUserToken(String token, {bool alreadyInApp = false}) async {
+    apiClient.token = token;
+    if(alreadyInApp && sharedPreferences.getString(AppConstants.userAddress) != null){
+      AddressModel? addressModel = AddressModel.fromJson(jsonDecode(sharedPreferences.getString(AppConstants.userAddress)!));
+      apiClient.updateHeader(
+        token, addressModel.zoneIds, sharedPreferences.getString(AppConstants.languageCode),
+        addressModel.latitude, addressModel.longitude,
+      );
+    }else{
+      apiClient.updateHeader(token, null, sharedPreferences.getString(AppConstants.languageCode), null, null);
+    }
+
+    return await sharedPreferences.setString(AppConstants.token, token);
+  }
+
+  @override
+  Future<Response> updateToken({String notificationDeviceToken = ''}) async {
+    String? deviceToken;
+    if(notificationDeviceToken.isEmpty){
+      if (GetPlatform.isIOS && !GetPlatform.isWeb) {
+        FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
+        NotificationSettings settings = await FirebaseMessaging.instance.requestPermission(
+          alert: true, announcement: false, badge: true, carPlay: false,
+          criticalAlert: false, provisional: false, sound: true,
+        );
+        if(settings.authorizationStatus == AuthorizationStatus.authorized) {
+          deviceToken = await _saveDeviceToken();
+        }
+      }else {
+        deviceToken = await _saveDeviceToken();
+      }
+      if(!GetPlatform.isWeb) {
+        FirebaseMessaging.instance.subscribeToTopic(AppConstants.topic);
+        final address = AddressHelper.getAddressFromSharedPref();
+        if (address?.zoneId != null) {
+          FirebaseMessaging.instance.subscribeToTopic('zone_${address!.zoneId}_customer');
+        }
+        FirebaseMessaging.instance.subscribeToTopic(AppConstants.maintenanceModeTopic);
+      }
+    }
+    return await apiClient.patchData(AppConstants.tokenUri, {"fcm_token": notificationDeviceToken.isNotEmpty ? notificationDeviceToken : deviceToken??'@'});
+  }
+
+  Future<String?> _saveDeviceToken() async {
+    String? deviceToken = '@';
+    if(!GetPlatform.isWeb) {
+      try {
+        deviceToken = (await FirebaseMessaging.instance.getToken())!;
+      }catch(_) {}
+    }
+    if (deviceToken != null) {
+      debugPrint('--------Device Token---------- $deviceToken');
+    }
+    return deviceToken;
+  }
+
+  @override
+  Future<Response> registration(SignUpBodyModel signUpModel) async {
+    return await apiClient.postData(AppConstants.registerUri, signUpModel.toJson(), handleError: false);
+  }
+
+  @override
+  Future<Response> login({required String emailOrPhone, required String password, required String loginType, required String fieldType, bool alreadyInApp = false}) async {
+    String guestId = getGuestId();
+    Map<String, String> data = {
+      "email_or_phone": emailOrPhone,
+      "password": password,
+      "login_type": loginType,
+      "field_type": fieldType,
+    };
+    if(guestId.isNotEmpty) {
+      data.addAll({"guest_id": guestId});
+    }
+    return await apiClient.postData(AppConstants.loginUri, data, handleError: false);
+
+  }
+
+  @override
+  Future<Response> otpLogin({required String phone, required String otp, required String loginType, required String verified}) async {
+    Map<String, String> data = {
+      "phone": phone,
+      "login_type": "otp",
+    };
+    return await apiClient.postData(AppConstants.otpSendUri, data, handleError: false);
+  }
+
+  @override
+  Future<Response> verifyOtp({required String phone, required String otp}) async {
+    Map<String, String> data = {
+      "phone": phone,
+      "otp": otp,
+      "login_type": "otp",
+    };
+    String guestId = getGuestId();
+    if(guestId.isNotEmpty) {
+      data["guest_id"] = guestId;
+    }
+    return await apiClient.postData(AppConstants.otpVerifyUri, data, handleError: false);
+  }
+
+  @override
+  Future<Response> updatePersonalInfo({required String name, required String? phone, required String loginType, required String? email, required String? referCode}) async {
+    Map<String, String> data = {
+      "login_type": loginType,
+      "name": name,
+      "ref_code": referCode??'',
+    };
+    if(phone != null && phone.isNotEmpty) {
+      data.addAll({"phone": phone});
+    }
+    if(email != null && email.isNotEmpty) {
+      data.addAll({"email": email});
+    }
+    return await apiClient.postData(AppConstants.personalInformationUri, data, handleError: false);
+
+  }
+
+  @override
+  Future<ResponseModel> guestLogin() async {
+    Response response = await apiClient.getData(AppConstants.guestLoginUri, handleError: false);
+    if (response.statusCode == 200) {
+      // V3 API: Extract data from response wrapper
+      var data = response.body['data'] ?? response.body;
+      String guestId = data['guest_id'].toString();
+      saveGuestId(guestId);
+      return ResponseModel(true, guestId);
+    } else {
+      return ResponseModel(false, response.statusText);
+    }
+  }
+
+  @override
+  Future<bool> saveGuestId(String id) async {
+    return await sharedPreferences.setString(AppConstants.guestId, id);
+  }
+
+  @override
+  Future<bool> clearGuestId() async {
+    return await sharedPreferences.remove(AppConstants.guestId);
+  }
+
+  @override
+  bool isGuestLoggedIn() {
+    return sharedPreferences.containsKey(AppConstants.guestId);
+  }
+
+  @override
+  Future<void> saveUserNumberAndPassword({required String number, required String password, required String countryCode, required String otpPoneNumber}) async {
+    try {
+      await sharedPreferences.setString(AppConstants.userPassword, password);
+      await sharedPreferences.setString(AppConstants.userNumber, number);
+      await sharedPreferences.setString(AppConstants.userCountryCode, countryCode);
+      await sharedPreferences.setString(AppConstants.userOtpPhoneNumber, otpPoneNumber);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<bool> clearUserNumberAndPassword() async {
+    await sharedPreferences.remove(AppConstants.userPassword);
+    await sharedPreferences.remove(AppConstants.userCountryCode);
+    await sharedPreferences.remove(AppConstants.userOtpPhoneNumber);
+    return await sharedPreferences.remove(AppConstants.userNumber);
+  }
+
+  @override
+  String getUserCountryCode() {
+    return sharedPreferences.getString(AppConstants.userCountryCode) ?? "";
+  }
+
+  @override
+  String getUserNumber() {
+    return sharedPreferences.getString(AppConstants.userNumber) ?? "";
+  }
+
+  @override
+  String getUserPassword() {
+    return sharedPreferences.getString(AppConstants.userPassword) ?? "";
+  }
+
+  @override
+  String getUserOtpPhoneNumber() {
+    return sharedPreferences.getString(AppConstants.userOtpPhoneNumber) ?? "";
+  }
+
+  @override
+  String getGuestId() {
+    return sharedPreferences.getString(AppConstants.guestId) ?? "";
+  }
+
+  @override
+  Future<Response> loginWithSocialMedia(SocialLogInBodyModel socialLogInModel) async {
+    String guestId = getGuestId();
+    Map<String, dynamic> data = socialLogInModel.toJson();
+    if(guestId.isNotEmpty) {
+      data.addAll({"guest_id": guestId});
+    }
+    return await apiClient.postData(AppConstants.loginUri, data);
+  }
+
+  @override
+  bool isLoggedIn() {
+    return sharedPreferences.containsKey(AppConstants.token);
+  }
+
+  @override
+  Future<bool> clearSharedData({bool removeToken = true}) async {
+    if(!GetPlatform.isWeb) {
+      FirebaseMessaging.instance.unsubscribeFromTopic(AppConstants.topic);
+      final address = AddressHelper.getAddressFromSharedPref();
+      if (address?.zoneId != null) {
+        FirebaseMessaging.instance.unsubscribeFromTopic('zone_${address!.zoneId}_customer');
+      }
+      if(removeToken) {
+        await apiClient.patchData(AppConstants.tokenUri, {"fcm_token": '@'});
+      }
+    }
+    if(removeToken) {
+      sharedPreferences.remove(AppConstants.token);
+      apiClient.token = null;
+    }
+    sharedPreferences.remove(AppConstants.guestId);
+    sharedPreferences.setStringList(AppConstants.cartList, []);
+    if(removeToken) {
+      await guestLogin();
+      String? addressString = sharedPreferences.getString(AppConstants.userAddress);
+      if(addressString != null && addressString.isNotEmpty){
+        AddressModel? addressModel = AddressModel.fromJson(jsonDecode(addressString));
+        apiClient.updateHeader(
+          null, addressModel.zoneIds, sharedPreferences.getString(AppConstants.languageCode),
+          addressModel.latitude, addressModel.longitude,
+        );
+      }
+    }
+    return true;
+  }
+
+  @override
+  bool isNotificationActive() {
+    return sharedPreferences.getBool(AppConstants.notification) ?? true;
+  }
+
+  @override
+  Future<void> setNotificationActive(bool isActive) async {
+    if(isActive) {
+      await updateToken();
+    } else {
+      if(!GetPlatform.isWeb) {
+        await updateToken(notificationDeviceToken: '@');
+        FirebaseMessaging.instance.unsubscribeFromTopic(AppConstants.topic);
+        if(isLoggedIn()) {
+          final address = AddressHelper.getAddressFromSharedPref();
+          if (address?.zoneId != null) {
+            FirebaseMessaging.instance.unsubscribeFromTopic('zone_${address!.zoneId}_customer');
+          }
+        }
+      }
+    }
+    sharedPreferences.setBool(AppConstants.notification, isActive);
+  }
+
+  @override
+  String getUserToken() {
+    return sharedPreferences.getString(AppConstants.token) ?? "";
+  }
+
+  @override
+  Future<bool> saveGuestContactNumber(String number) async {
+    return await sharedPreferences.setString(AppConstants.guestNumber, number);
+  }
+
+  @override
+  String getGuestContactNumber() {
+    return sharedPreferences.getString(AppConstants.guestNumber) ?? "";
+  }
+
+  @override
+  Future<Response> add(SignUpBodyModel signUpModel) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future delete(int? id) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future get(String? id) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future getList({int? offset}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future update(Map<String, dynamic> body, int? id) {
+    throw UnimplementedError();
+  }
+
+}

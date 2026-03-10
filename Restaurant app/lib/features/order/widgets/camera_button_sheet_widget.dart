@@ -1,0 +1,75 @@
+import 'package:mnjood_vendor/features/order/controllers/order_controller.dart';
+import 'package:mnjood_vendor/util/dimensions.dart';
+import 'package:mnjood_vendor/util/styles.dart';
+import 'package:flutter/material.dart';
+import 'package:heroicons_flutter/heroicons_flutter.dart';
+import 'package:get/get.dart';
+
+class CameraButtonSheetWidget extends StatelessWidget {
+  const CameraButtonSheetWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 500,
+      padding: const EdgeInsets.symmetric(vertical: Dimensions.paddingSizeDefault),
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(Dimensions.radiusExtraLarge)),
+        color: Theme.of(context).cardColor,
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+
+        Container(
+          height: 4, width: 50,
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(Dimensions.radiusDefault), color: Theme.of(context).hintColor),
+        ),
+        const SizedBox(height: Dimensions.paddingSizeLarge),
+
+        Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+
+          InkWell(
+            onTap: (){
+              if(Get.isBottomSheetOpen!){
+                Get.back();
+              }
+              Get.find<OrderController>().pickPrescriptionImage(isRemove: false, isCamera: true);
+            },
+            child: Column(children: [
+
+              Container(
+                padding: const EdgeInsets.all(Dimensions.paddingSizeLarge),
+                decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).primaryColor.withValues(alpha: 0.2)),
+                child: Icon(HeroiconsOutline.camera, size: 45, color: Theme.of(context).primaryColor),
+              ),
+              const SizedBox(height: Dimensions.paddingSizeSmall),
+
+              Text('from_camera'.tr, style: robotoMedium),
+
+            ]),
+          ),
+
+          InkWell(
+            onTap: () {
+              if(Get.isBottomSheetOpen!){
+                Get.back();
+              }
+              Get.find<OrderController>().pickPrescriptionImage(isRemove: false, isCamera: false);
+            },
+            child: Column(children: [
+
+              Container(
+                padding: const EdgeInsets.all(Dimensions.paddingSizeLarge),
+                decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).primaryColor.withValues(alpha: 0.2)),
+                child: Icon(HeroiconsOutline.photo, size: 45, color: Theme.of(context).primaryColor),
+              ),
+              const SizedBox(height: Dimensions.paddingSizeSmall),
+
+              Text('from_gallery'.tr, style: robotoMedium),
+
+            ]),
+          )
+        ]),
+      ]),
+    );
+  }
+}

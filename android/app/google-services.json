@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "68086382423",
+    "project_id": "mnjood-8bc5f",
+    "storage_bucket": "mnjood-8bc5f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:68086382423:android:0f9afa4b91a0d651de4812",
+        "android_client_info": {
+          "package_name": "com.mnjood.user"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwuuR93ct3T-o21Q9Q0nL_A8N8ukqN7i4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
